@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Runner Clone</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f7f7f7; font-family: 'Courier New', Courier, monospace; }
+        canvas { border-bottom: 2px solid #535353; background-color: #fff; }
+        .instructions { position: absolute; top: 20px; color: #535353; }
+    </style>
+</head>
+<body>
+    <div class="instructions">Press **SPACE** or **TAP** to Jump</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = 800;
+        canvas.height = 200;
+
+        // Game Variables
+        let score = 0;
+        let gameSpeed = 5;
+        let isGameOver = false;
+
+        const dino = {
+            x: 50,
+            y: 150,
+            width: 40,
+            height: 40,
+            color: "#535353",
+            dy: 0,
+            jumpForce: 12,
+            gravity: 0.6,
+            grounded: false,
+            jump() {
+                if (this.grounded) {
+                    this.dy = -this.jumpForce;
+                    this.grounded = false;
+                }
+            },
+            update() {
+                if (this.y + this.height < canvas.height) {
+                    this.dy += this.gravity;
+                    this.grounded = false;
+                } else {
+                    this.dy = 0;
+                    this.grounded = true;
+                    this.y = canvas.height - this.height;
+                }
+                this.y += this.dy;
+            },
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        };
+
+        let obstacles = [];
+        function spawnObstacle() {
+            let size = Math.random() * (50 - 20) + 20;
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - size,
+                width: 20,
+                height: size,
+                color: "#ff4d4d"
+            });
+        }
+
+        let frame = 0;
+        function animate() {
+            if (isGameOver) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frame++;
+
+            // Handle Obstacles
+            if (frame % 100 === 0) spawnObstacle();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let o = obstacles[i];
+                o.x -= gameSpeed;
+
+                ctx.fillStyle = o.color;
+                ctx.fillRect(o.x, o.y, o.width, o.height);
+
+                // Collision Detection
+                if (dino.x < o.x + o.width &&
+                    dino.x + dino.width > o.x &&
+                    dino.y < o.y + o.height &&
+                    dino.y + dino.height > o.y) {
+                    gameOver();
+                }
+
+                if (o.x + o.width < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                }
+            }
+
+            dino.update();
+            dino.draw();
+
+            // Scoreboard
+            ctx.fillStyle = "#535353";
+            ctx.font = "20px Arial";
+            ctx.fillText(`Score: ${score}`, 700, 30);
+
+            requestAnimationFrame(animate);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "40px Arial";
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+            ctx.font = "20px Arial";
+            ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 40);
+        }
+
+        function restart() {
+            score = 0;
+            obstacles = [];
+            isGameOver = false;
+            dino.y = 150;
+            animate();
+        }
+
+        // Listeners
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                if (isGameOver) restart();
+                else dino.jump();
+            }
+        });
+
+        canvas.addEventListener("touchstart", () => {
+            if (isGameOver) restart();
+            else dino.jump();
+        });
+
+        animate();
+    </script>
+</body>
+</html>
